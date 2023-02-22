@@ -42,8 +42,7 @@ import argparse
 import sys
 import os
 from associate import *
-from evaluate import *
-from generate_pointcloud import *
+from evaluate_rpe import *
 from PIL import Image, ImageDraw
 
 focalLength = 525.0
@@ -86,20 +85,20 @@ if __name__ == '__main__':
 
     matches = associate(image_list, pose_list,0,0.02)
 
-    stamps = image_list.keys()
+    stamps = list(image_list)
     stamps.sort()
     
     matches_dict = dict(matches)
     for stamp in stamps:
         image_file = image_list[stamp][0]
         image = Image.open(image_file)
-        print "image stamp: %f"%stamp
+        print("image stamp: %f"%stamp)
         
         if stamp in matches_dict: 
-            print "pose stamp: %f"%matches_dict[stamp]
+            print("pose stamp: %f"%matches_dict[stamp])
             pose = traj[matches_dict[stamp]]
             
-            stamps = traj.keys()
+            stamps = list(traj)
             stamps.sort()
         
             xy = []    
