@@ -4,7 +4,7 @@ Scripts to evalute trajectory, downloaded from https://vision.in.tum.de/data/dat
 python3 associate.py ../data/rgbd_dataset_freiburg1_xyz/depth.txt ../data/rgbd_dataset_freiburg1_xyz/groundtruth.txt
 
 # 2. evaluate ate (evaluate ate of 2 trajectories)
-python3 evaluate_ate.py ../data/rgbd_dataset_freiburg1_xyz/groundtruth.txt ../data/rgbd_dataset_freiburg1_xyz/groundtruth.txt
+python3 evaluate_ate.py ../data/rgbd_dataset_freiburg1_xyz/groundtruth.txt ../data/rgbd_dataset_freiburg1_xyz/groundtruth.txt --plot ate.png
 
 # 3. evaluate rpe (evaluate rpe of 2 trajectories)
 python3 evaluate_rpe.py ../data/rgbd_dataset_freiburg1_xyz/groundtruth.txt ../data/rgbd_dataset_freiburg1_xyz/groundtruth.txt
