@@ -37,6 +37,9 @@ class Camera:
                                           [0.0, 0.0, 1.0, 0.0],
                                           [0.0, 0.0, 0.0, 1.0]])
 
+        self.width = 640
+        self.height = 480
+
     def point_cloud_from_depth(self, Z):
         h, w = Z.shape
 
