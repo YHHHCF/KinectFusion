@@ -2,6 +2,8 @@
 # This component takes a TSDF scene representation and a camera pose (extrinsic)
 # to compute the predicted vertex and normal map from the given pose.
 
+import matplotlib.pyplot as plt
+
 # Inputs: TSDF representation and camera (pose...)
 # Outputs vertex and normal maps
 def ray_cast_vbg(vbg, camera, depth):
@@ -23,3 +25,8 @@ def ray_cast_vbg(vbg, camera, depth):
                           range_map_down_factor=8)
 
     return result['vertex'], result['normal']
+
+def visualize_map(map):
+    map = map.numpy()
+    plt.imshow(map)
+    plt.show()

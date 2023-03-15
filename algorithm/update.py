@@ -82,10 +82,12 @@ if __name__ == "__main__":
         # the same extrinsic just for illustration of the upate component
         vbg = update_vbg(vbg, camera, depth)
 
-        # TODO: visualize and make sure correct
+        # vertext and normal maps ray casted from tsdf representation
         vertex, normal = ray_cast_vbg(vbg, camera, depth)
-        print(vertex.shape)
-        print(normal.shape)
+
+        if debug:
+            visualize_map(vertex)
+            visualize_map(normal)
 
     # visualize the point cloud extracted from TSDF
     visualize_vbg_o3d(vbg, 180, 0, 0)
