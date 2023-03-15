@@ -5,6 +5,7 @@
 
 import open3d as o3d
 import numpy as np
+from dataloader import *
 
 class Camera:
     def __init__(self):
@@ -13,23 +14,34 @@ class Camera:
         cx = 319.5
         cy = 239.5
 
+        # Used by self implemented point_cloud_from_depth() (based on numpy)
         self.K = np.eye(3)
         self.K[0][0] = fx
         self.K[1][1] = fy
         self.K[0][2] = cx
         self.K[1][2] = cy
 
-        self.z_factor = 1 / 5000.0 # TUM dataset depth scale factor on Z value
-
+        # Used by demo o3d point cloud visualization in dataloader.py
         self.o3d_intrinsic = o3d.camera.PinholeCameraIntrinsic()
         self.o3d_intrinsic.set_intrinsics(640, 480, fx, fy, cx, cy)
 
-    def point_cloud_from_depth(self, depth_numpy):
-        h, w = depth_numpy.shape
-        
+
+        # Used by the KinFu pipeline
+        self.intrinsic = o3d.core.Tensor([[fx,  0.0, cx ],
+                                          [0.0, fy,  cy ],
+                                          [0.0, 0.0, 1.0]])
+
+        # Used by the KinFu pipeline
+        self.extrinsic = o3d.core.Tensor([[1.0, 0.0, 0.0, 0.0],
+                                          [0.0, 1.0, 0.0, 0.0],
+                                          [0.0, 0.0, 1.0, 0.0],
+                                          [0.0, 0.0, 0.0, 1.0]])
+
+    def point_cloud_from_depth(self, Z):
+        h, w = Z.shape
+
         # Init X and Y with u and v values
         X, Y = np.meshgrid(np.linspace(0, w-1, w), np.linspace(0, h-1, h))
-        Z = depth_numpy.astype(np.float32) * self.z_factor # Z stores z values
 
         # X = (u - cx) * Z / fx
         X = (X - self.K[0][2]) * Z / self.K[0][0]
@@ -40,15 +52,14 @@ class Camera:
         points_cloud_numpy = np.stack((X, Y, Z), axis=2) # (h, w, 3)
         points_cloud_numpy = points_cloud_numpy.reshape((h*w, 3)) # (h*w, 3)
         points_cloud_numpy = points_cloud_numpy[points_cloud_numpy[:, 2] > 0] # filter out invalid depths
-        
-        print("Depth map shape:", depth_numpy.shape)
+
+        print("Depth map shape:", Z.shape)
         print("Point cloud shape:", points_cloud_numpy.shape)
         return points_cloud_numpy
 
 
 if __name__ == "__main__":
     depth_path = "rgbd_dataset_freiburg1_xyz/depth/1305031102.160407.png"
-    depth_numpy = np.asarray(o3d.io.read_image(depth_path))
+    depth_numpy = load_depth_as_numpy(depth_path)
     camera = Camera()
     point_cloud_numpy = camera.point_cloud_from_depth(depth_numpy)
-    print(point_cloud_numpy.shape)
