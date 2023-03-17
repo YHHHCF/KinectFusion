@@ -86,6 +86,10 @@ if __name__ == "__main__":
         vertex, normal = ray_cast_vbg(vbg, camera, depth)
 
         if debug:
+            print(vertex.shape)
+            print(normal.shape)
+            print("vertex map min, max:", np.min(vertex.numpy()), np.max(vertex.numpy()))
+            print("normal map min, max:", np.min(normal.numpy()), np.max(normal.numpy()))
             visualize_map(vertex)
             visualize_map(normal)
 

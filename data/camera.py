@@ -9,6 +9,11 @@ from dataloader import *
 
 class Camera:
     def __init__(self):
+        # Image (depth) size
+        self.width = 640
+        self.height = 480
+
+        # Intrinsics
         fx = 525.0
         fy = 525.0
         cx = 319.5
@@ -23,7 +28,7 @@ class Camera:
 
         # Used by demo o3d point cloud visualization in dataloader.py
         self.o3d_intrinsic = o3d.camera.PinholeCameraIntrinsic()
-        self.o3d_intrinsic.set_intrinsics(640, 480, fx, fy, cx, cy)
+        self.o3d_intrinsic.set_intrinsics(self.width, self.height, fx, fy, cx, cy)
 
 
         # Used by the KinFu pipeline
@@ -37,10 +42,20 @@ class Camera:
                                           [0.0, 0.0, 1.0, 0.0],
                                           [0.0, 0.0, 0.0, 1.0]])
 
-        self.width = 640
-        self.height = 480
 
     def point_cloud_from_depth(self, Z):
+        h, w = Z.shape
+
+        vertex_map_numpy = self.vertex_map_from_depth(Z)
+        points_cloud_numpy = vertex_map_numpy.reshape((h*w, 3)) # (h*w, 3)
+        points_cloud_numpy = points_cloud_numpy[points_cloud_numpy[:, 2] > 0] # filter out invalid depths
+
+        print("Depth map shape:", Z.shape)
+        print("Point cloud shape:", points_cloud_numpy.shape)
+        return points_cloud_numpy
+
+
+    def vertex_map_from_depth(self, Z):
         h, w = Z.shape
 
         # Init X and Y with u and v values
@@ -52,14 +67,14 @@ class Camera:
         # Y = (v - cy) * Z / fy
         Y = (Y - self.K[1][2]) * Z / self.K[1][1]
 
-        points_cloud_numpy = np.stack((X, Y, Z), axis=2) # (h, w, 3)
-        points_cloud_numpy = points_cloud_numpy.reshape((h*w, 3)) # (h*w, 3)
-        points_cloud_numpy = points_cloud_numpy[points_cloud_numpy[:, 2] > 0] # filter out invalid depths
+        vertex_map_numpy = np.stack((X, Y, Z), axis=2) # (h, w, 3)
 
-        print("Depth map shape:", Z.shape)
-        print("Point cloud shape:", points_cloud_numpy.shape)
-        return points_cloud_numpy
+        return vertex_map_numpy
 
+def visualize_map(map):
+    map = map.numpy()
+    plt.imshow(map)
+    plt.show()
 
 if __name__ == "__main__":
     depth_path = "rgbd_dataset_freiburg1_xyz/depth/1305031102.160407.png"
