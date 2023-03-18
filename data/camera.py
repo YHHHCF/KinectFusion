@@ -5,6 +5,8 @@
 
 import open3d as o3d
 import numpy as np
+import scipy
+from scipy.spatial.transform import Rotation as R
 from dataloader import *
 
 class Camera:
@@ -81,6 +83,29 @@ def visualize_map(map):
     map = map.numpy()
     plt.imshow(map)
     plt.show()
+
+# Input: pose, a 4x4 matrix representing RT4 = R4.dot(T4), first translate then rotate
+# Output: a vector of [tx ty tz qx qy qz qw] to represent the pose
+def matrix_to_trajectory(RT4):
+    # 3x3 R
+    R3 = RT4[:3,:3]
+
+    # 3x1 RT
+    RT3 = RT4[:3,3:4]
+
+    # 3x1 T
+    T3 = np.linalg.inv(R3).dot(RT3)
+
+    trajectory = np.zeros(7)
+
+    # Update translation
+    trajectory[:3] = T3.reshape((3))
+
+    # Update rotation
+    trajectory[3:7] = R.from_matrix([R3]).as_quat().reshape(4)
+
+    return trajectory
+
 
 if __name__ == "__main__":
     depth_path = "rgbd_dataset_freiburg1_xyz/depth/1305031102.160407.png"

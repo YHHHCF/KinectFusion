@@ -13,6 +13,26 @@ from update import *
 from prediction import *
 
 import matplotlib.pyplot as plt
+import time
+
+
+class PerfTimer:
+    def __init__(self):
+        self.start = 0.0
+        self.label = ""
+
+    def startMeasure(self, label=""):
+        self.start = time.time()
+        self.label = label
+
+    def stopMeasure(self):
+        wall_time = time.time() - self.start
+        if wall_time >= 1.0:
+            print(f'{self.label:s} wall time is {wall_time:.3f} s.')
+        else:
+            print(f'{self.label:s} Wall time is {wall_time*1000:.3f} ms.')
+        self.start = 0.0
+
 
 class KinectFusion:
     def __init__(self, depth_folder="./data/rgbd_dataset_freiburg1_xyz/depth/"):
@@ -76,15 +96,25 @@ class KinectFusion:
     # Run the next (but not the first) frame
     def next_frame(self):
         print("Running frame:", self.frame_id)
+        timer = PerfTimer()
 
+        # Depth streaming
+        timer.startMeasure("Depth streaming")
+        start_time = time.time()
         depth = self.get_depth_map()
         depth_numpy = np.asarray(depth)
         depth_numpy = depth_numpy.reshape(depth_numpy.shape[:2])
+        wall_time = time.time() - start_time
+        timer.stopMeasure()
+
 
         # Surface Measurement
+        timer.startMeasure("Surface Measurement")
         self.curr_point_cloud = point_cloud_from_depth(depth_numpy, self.camera)
+        timer.stopMeasure()
 
         # Pose Estimation
+        timer.startMeasure("Pose Estimation")
         # TODO: tune the threshold
         threshold = 0.02
 
@@ -94,24 +124,32 @@ class KinectFusion:
                     o3d.pipelines.registration.TransformationEstimationPointToPlane())
 
         self.camera.extrinsic = reg_p2l.transformation
+        timer.stopMeasure()
         print("Pose of this frame is:")
         print(self.camera.extrinsic)
+        print("As trajectory is:", matrix_to_trajectory(self.camera.extrinsic))
 
-        # TODO: get quaternion pose for evaluation
         # TODO: visualize pose
 
         # TSDF Update
+        timer.startMeasure("TSDF Update")
         self.vbg = update_vbg(self.vbg, self.camera, depth)
+        timer.stopMeasure()
 
         # Surface Prediction
+        timer.startMeasure("Surface Prediction")
         self.prev_point_cloud = ray_cast_vbg(self.vbg, self.camera, depth)
+        timer.stopMeasure()
 
         self.frame_id += 1
 
 if __name__ == "__main__":
     kf = KinectFusion()
-
     kf.first_frame()
 
+    timer = PerfTimer()
+
     while kf.has_next_frame():
+        timer.startMeasure("Overall frame")
         kf.next_frame()
+        timer.stopMeasure()
