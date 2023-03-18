@@ -20,7 +20,7 @@ from prediction import *
 # TODO: play with (and understand) vbg lower level implementations, read C++ source code
 
 # TODO: tune the parameters: voxel_size, block_resolution and block_count
-def create_vbg():
+def create_vbg(device):
     vbg = o3d.t.geometry.VoxelBlockGrid(
             attr_names=('tsdf', 'weight'), # signed distance value, weight (number of observations)
             attr_dtypes=(o3c.float32, o3c.float32),
@@ -39,12 +39,13 @@ def create_vbg():
 # clamping_distance: by default depth larger than 5 meters are clamped to 5 meters
 def update_vbg(vbg, camera, depth, depth_scale=5000.0, clamping_distance=5.0):
     # compute the id for blocks in the frustum given depth map
+    extrinsic = o3d.core.Tensor(camera.extrinsic)
     frustum_block_coords = vbg.compute_unique_block_coordinates(depth, camera.intrinsic,
-                                                                camera.extrinsic, depth_scale,
+                                                                extrinsic, depth_scale,
                                                                 clamping_distance)
 
     # compute TSDF and fuse it with the global one
-    vbg.integrate(frustum_block_coords, depth, camera.intrinsic, camera.extrinsic,
+    vbg.integrate(frustum_block_coords, depth, camera.intrinsic, extrinsic,
                   depth_scale, clamping_distance)
     return vbg
 
@@ -66,7 +67,7 @@ if __name__ == "__main__":
     camera = Camera()
     depth_folder = "../data/rgbd_dataset_freiburg1_xyz/depth/"
     file_list = get_file_list(depth_folder)
-    vbg = create_vbg()
+    vbg = create_vbg(device)
     debug = True
 
     for i in range(len(file_list)):

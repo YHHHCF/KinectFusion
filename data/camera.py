@@ -43,20 +43,26 @@ class Camera:
                                           [0.0, 0.0, 0.0, 1.0]])
 
 
-    def point_cloud_from_depth(self, Z):
+    def point_cloud_from_depth(self, Z, filter_invalid=False, debug=False):
         h, w = Z.shape
 
         vertex_map_numpy = self.vertex_map_from_depth(Z)
         points_cloud_numpy = vertex_map_numpy.reshape((h*w, 3)) # (h*w, 3)
-        points_cloud_numpy = points_cloud_numpy[points_cloud_numpy[:, 2] > 0] # filter out invalid depths
 
-        print("Depth map shape:", Z.shape)
-        print("Point cloud shape:", points_cloud_numpy.shape)
+        if filter_invalid:
+            # filter out invalid depths
+            points_cloud_numpy = points_cloud_numpy[points_cloud_numpy[:, 2] > 0]
+
+        if debug:
+            print("Depth map shape:", Z.shape)
+            print("Point cloud shape:", points_cloud_numpy.shape)
         return points_cloud_numpy
 
 
     def vertex_map_from_depth(self, Z):
         h, w = Z.shape
+        Z = Z.astype(np.float)
+        Z /= 5000.0
 
         # Init X and Y with u and v values
         X, Y = np.meshgrid(np.linspace(0, w-1, w), np.linspace(0, h-1, h))

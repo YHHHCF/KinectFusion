@@ -44,7 +44,6 @@ if __name__ == "__main__":
     print("Transformation between pc_o3d_1 and pc_o3d_1 is:")
     print(reg_p2l.transformation)
 
-
     reg_p2l = o3d.pipelines.registration.registration_icp(
                 pc_o3d_1, pc_o3d_2, threshold, T_init,
                 o3d.pipelines.registration.TransformationEstimationPointToPlane())
