@@ -45,7 +45,7 @@ def update_vbg(vbg, camera, depth, depth_scale=5000.0, clamping_distance=5.0):
     # compute TSDF and fuse it with the global one
     vbg.integrate(frustum_block_coords, depth, camera.intrinsic, extrinsic,
                   depth_scale, clamping_distance)
-    return vbg, frustum_block_coords
+    return vbg
 
 # A reconstruction pipeline using all the depth maps without updating
 # real device pose, which makes the reconstrution results will be totally incorrect
@@ -70,7 +70,7 @@ if __name__ == "__main__":
 
         # camera.extrinsic needs to be updated per frame, here I'm using
         # the same extrinsic just for illustration of the upate component
-        vbg, _ = update_vbg(vbg, camera, depth)
+        vbg = update_vbg(vbg, camera, depth)
 
         # # vertext and normal maps ray casted from tsdf representation
         # point_cloud = ray_cast_vbg(vbg, camera, depth)

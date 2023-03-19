@@ -142,10 +142,10 @@ class KinectFusion:
 
         # TSDF Update
         depth, _ = self.get_depth_map()
-        self.vbg, frustum_block_coords = update_vbg(self.vbg, self.camera, depth)
+        self.vbg = update_vbg(self.vbg, self.camera, depth)
 
         # Surface Prediction
-        self.prev_point_cloud = ray_cast_vbg(self.vbg, self.camera, depth, frustum_block_coords)
+        self.prev_point_cloud = ray_cast_vbg(self.vbg, self.camera, depth)
 
         self.frame_id += 1
 
@@ -173,7 +173,7 @@ class KinectFusion:
         # Pose Estimation
         timer.startMeasure("Pose Estimation")
         # TODO: tune the threshold
-        threshold = 0.5
+        threshold = 0.02
 
         # ICP based on previous frame's pose to estimate current frame's pose
         reg_p2l = o3d.pipelines.registration.registration_icp(
@@ -190,20 +190,20 @@ class KinectFusion:
 
         # TSDF Update
         timer.startMeasure("TSDF Update")
-        self.vbg, frustum_block_coords = update_vbg(self.vbg, self.camera, depth)
+        self.vbg = update_vbg(self.vbg, self.camera, depth)
         timer.stopMeasure()
 
         # Surface Prediction
         timer.startMeasure("Surface Prediction")
-        self.prev_point_cloud = ray_cast_vbg(self.vbg, self.camera, depth, frustum_block_coords)
+        self.prev_point_cloud = ray_cast_vbg(self.vbg, self.camera, depth)
         timer.stopMeasure()
 
         self.frame_id += 1
 
 if __name__ == "__main__":
-    # data_folder="./data/rgbd_dataset_freiburg1_xyz/"
+    data_folder="./data/rgbd_dataset_freiburg1_xyz/"
     # data_folder="./data/rgbd_dataset_freiburg1_360/"
-    data_folder="./data/rgbd_dataset_freiburg3_cabinet/"
+    # data_folder="./data/rgbd_dataset_freiburg3_cabinet/"
     filtered_depths = True
 
     if filtered_depths:
@@ -220,10 +220,12 @@ if __name__ == "__main__":
         kf.next_frame()
         timer.stopMeasure()
 
+        if kf.frame_id % 50 == 0:
+            kf.save_results()
+
         # visualize_point_cloud_o3d(kf.curr_point_cloud, 180, 0, 0)
-        if kf.frame_id == 30:
-            break
+        # if kf.frame_id == 300:
+        #     break
 
     kf.save_results()
-
     visualize_vbg_o3d(kf.vbg, 180, 0, 0)

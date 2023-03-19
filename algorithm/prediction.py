@@ -7,11 +7,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Inputs: TSDF representation and camera (pose...)
-# Outputs vertex and normal maps
-def ray_cast_vbg(vbg, camera, depth, frustum_block_coords):
+# Outputs: point cloud (includes vertex and normal maps) rendered at global position
+def ray_cast_vbg(vbg, camera, depth):
+    # ray casting is performed at global position
+    extrinsic = o3d.core.Tensor(np.eye(4))
+
+    frustum_block_coords = vbg.compute_unique_block_coordinates(depth, camera.intrinsic,
+                                                                extrinsic, 5000.0,
+                                                                5.0)
     result = vbg.ray_cast(block_coords=frustum_block_coords,
                           intrinsic=camera.intrinsic,
-                          extrinsic=o3d.core.Tensor(camera.extrinsic),
+                          extrinsic=extrinsic,
                           width=camera.width,
                           height=camera.height,
                           render_attributes=['vertex'],
