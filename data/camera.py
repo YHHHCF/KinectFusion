@@ -39,17 +39,19 @@ class Camera:
                                           [0.0, 0.0, 1.0]])
 
         # Used by the KinFu pipeline
-        self.extrinsic = o3d.core.Tensor([[1.0, 0.0, 0.0, 0.0],
-                                          [0.0, 1.0, 0.0, 0.0],
-                                          [0.0, 0.0, 1.0, 0.0],
-                                          [0.0, 0.0, 0.0, 1.0]])
+        self.extrinsic = np.eye(4)
+
+        # for perf optimization, down sample the vertex and normal map
+        self.down_sample_factor = 10
 
 
     def point_cloud_from_depth(self, Z, filter_invalid=False, debug=False):
         h, w = Z.shape
 
         vertex_map_numpy = self.vertex_map_from_depth(Z)
-        points_cloud_numpy = vertex_map_numpy.reshape((h*w, 3)) # (h*w, 3)
+        vertex_map_numpy = vertex_map_numpy[::self.down_sample_factor,::self.down_sample_factor,:]
+
+        points_cloud_numpy = vertex_map_numpy.reshape((-1,3)) # (h*w, 3)
 
         if filter_invalid:
             # filter out invalid depths

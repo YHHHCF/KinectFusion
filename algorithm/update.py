@@ -73,7 +73,7 @@ if __name__ == "__main__":
     for i in range(len(file_list)):
         print("Updating frame:", i)
 
-        if debug and i == 4:
+        if debug and i == 10:
             break
 
         depth_path = file_list[i]
@@ -84,15 +84,7 @@ if __name__ == "__main__":
         vbg = update_vbg(vbg, camera, depth)
 
         # vertext and normal maps ray casted from tsdf representation
-        vertex, normal = ray_cast_vbg(vbg, camera, depth)
-
-        if debug:
-            print(vertex.shape)
-            print(normal.shape)
-            print("vertex map min, max:", np.min(vertex.numpy()), np.max(vertex.numpy()))
-            print("normal map min, max:", np.min(normal.numpy()), np.max(normal.numpy()))
-            visualize_map(vertex)
-            visualize_map(normal)
+        point_cloud = ray_cast_vbg(vbg, camera, depth)
 
     # visualize the point cloud extracted from TSDF
     visualize_vbg_o3d(vbg, 180, 0, 0)

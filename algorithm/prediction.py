@@ -29,6 +29,10 @@ def ray_cast_vbg(vbg, camera, depth):
     point_cloud_o3d = o3d.geometry.PointCloud()
 
     vertex = result['vertex'].numpy()
+
+    # for perf optimization, down sample the vertex
+    vertex = vertex[::camera.down_sample_factor,::camera.down_sample_factor,:]
+
     vertex = vertex.reshape((-1, 3))
     point_cloud_o3d.points = o3d.utility.Vector3dVector(vertex)
     point_cloud_o3d.estimate_normals()
