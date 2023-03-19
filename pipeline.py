@@ -80,9 +80,9 @@ class KinectFusion:
 
         # a list of file paths for depth maps, already sorted by timestamp
         if self.depth_filtered:
-            self.depth_file_list = get_file_list(self.data_folder + "filtered_depth/")
+            self.depth_file_list, self.timestamps = get_file_list(self.data_folder + "filtered_depth/")
         else:
-            self.depth_file_list = get_file_list(self.data_folder + "depth/")
+            self.depth_file_list, self.timestamps = get_file_list(self.data_folder + "depth/")
         self.num_frames = len(self.depth_file_list)
 
         print("KinectFusion pipeline total frame number:", self.num_frames)
@@ -102,7 +102,8 @@ class KinectFusion:
         self.camera = Camera()
 
         # a list of poses (in trajectory) corresponding to each depth frame
-        self.poses = np.zeros((self.num_frames, 7))
+        # timestamp tx ty tz qx qy qz qw
+        self.poses = np.zeros((self.num_frames, 8))
 
     # Get the current frame's depth map
     def get_depth_map(self):
@@ -114,12 +115,29 @@ class KinectFusion:
 
         return depth, depth_numpy
 
+    # Save trajectory (as txt file) and TSDF
+    def save_results(self, results_foler='./results/'):
+        trajectory_path = results_foler + 'trajectory.txt'
+        with open(trajectory_path, 'w') as f:
+            f.write('# Output trajectory with each line: timestamp tx ty tz qx qy qz qw\n')
+            for i in range(self.poses.shape[0]):
+                for j in range(self.poses.shape[1]):
+                    f.write('{:.4f} '.format(self.poses[i][j]))
+                f.write('\n')
+        print("Trajectory saved as:", trajectory_path)
+
+        vbg_path = results_foler + 'TSDF.npz'
+        self.vbg.save(vbg_path)
+        print("TSDF saved as:", vbg_path)
+
     # Run the first frame, it only requires TSDF Update and Surface Prediction 
     def first_frame(self):
         print(f'========Running frame {self.frame_id:d} out of {self.num_frames:d} frames========')
 
         # Pose Estimation: init inital pose as identical
         self.camera.extrinsic = np.eye(4)
+        self.poses[self.frame_id][0] = self.timestamps[self.frame_id]
+        self.poses[self.frame_id][1:] = matrix_to_trajectory(self.camera.extrinsic)
 
         # TSDF Update
         depth, depth_numpy = self.get_depth_map()
@@ -164,9 +182,10 @@ class KinectFusion:
 
         self.camera.extrinsic = reg_p2l.transformation
         timer.stopMeasure()
-        self.poses[self.frame_id] = matrix_to_trajectory(self.camera.extrinsic)
 
-        # TODO: visualize pose
+        # Update timestamp and trajectory
+        self.poses[self.frame_id][0] = self.timestamps[self.frame_id]
+        self.poses[self.frame_id][1:] = matrix_to_trajectory(self.camera.extrinsic)
 
         # TSDF Update
         timer.startMeasure("TSDF Update")
@@ -181,7 +200,7 @@ class KinectFusion:
         self.frame_id += 1
 
 if __name__ == "__main__":
-    filtered_depths = True
+    filtered_depths = False
 
     if filtered_depths:
         filter_depths()
@@ -200,5 +219,8 @@ if __name__ == "__main__":
         # visualize_point_cloud_o3d(kf.curr_point_cloud, 180, 0, 0)
         if kf.frame_id == 30:
             break
+
+    # TODO: visualize pose
+    kf.save_results()
 
     visualize_vbg_o3d(kf.vbg, 180, 0, 0)

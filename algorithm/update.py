@@ -49,16 +49,6 @@ def update_vbg(vbg, camera, depth, depth_scale=5000.0, clamping_distance=5.0):
                   depth_scale, clamping_distance)
     return vbg
 
-# return a sorted (by timestamp) list of file paths
-def get_file_list(depth_folder):
-    file_list = []
-    for file in os.listdir(depth_folder):
-        depth_path = depth_folder + file
-        file_list.append(depth_path)
-    file_list.sort()
-
-    return file_list
-
 # A reconstruction pipeline using all the depth maps without updating
 # real device pose, which makes the reconstrution results will be totally incorrect
 # Just illustrating the utils for TSDF update and fusing process here

@@ -1,6 +1,7 @@
 import numpy as np
 import open3d as o3d
 import cv2
+import os
 import matplotlib.pyplot as plt
 from camera import *
 
@@ -70,6 +71,23 @@ def load_depth_as_numpy(depth_path):
 
     return depth
 
+# return a sorted (by timestamp) list of file paths
+def get_file_list(depth_folder):
+    file_list = []
+    timestamps = []
+
+    for file in os.listdir(depth_folder):
+        # drop the '.png' and convert to float
+        timestamps.append(float(file[:-4]))
+
+        # append file path
+        depth_path = depth_folder + file
+        file_list.append(depth_path)
+
+    timestamps.sort()
+    file_list.sort()
+
+    return file_list, timestamps
 
 if __name__ == "__main__":
     point_cloud_path = "rgbd_dataset_freiburg1_xyz/pointcloud_all.ply"
