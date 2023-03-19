@@ -17,15 +17,13 @@ from dataloader import *
 from camera import *
 from prediction import *
 
-# TODO: play with (and understand) vbg lower level implementations, read C++ source code
-
 # TODO: tune the parameters: voxel_size, block_resolution and block_count
 def create_vbg(device):
     vbg = o3d.t.geometry.VoxelBlockGrid(
             attr_names=('tsdf', 'weight'), # signed distance value, weight (number of observations)
             attr_dtypes=(o3c.float32, o3c.float32),
             attr_channels=((1), (1)),
-            voxel_size=3.0 / 512, # 3 / 512 = 0.00586 m
+            voxel_size=3.0/512, # 3 / 512 = 0.00586 m
             block_resolution=16, # 16x16x16 voxels per block
             block_count=10000, # Init 10000 slots to hold blocks in the HashMap
             device=device)
@@ -47,7 +45,7 @@ def update_vbg(vbg, camera, depth, depth_scale=5000.0, clamping_distance=5.0):
     # compute TSDF and fuse it with the global one
     vbg.integrate(frustum_block_coords, depth, camera.intrinsic, extrinsic,
                   depth_scale, clamping_distance)
-    return vbg
+    return vbg, frustum_block_coords
 
 # A reconstruction pipeline using all the depth maps without updating
 # real device pose, which makes the reconstrution results will be totally incorrect
@@ -55,15 +53,16 @@ def update_vbg(vbg, camera, depth, depth_scale=5000.0, clamping_distance=5.0):
 if __name__ == "__main__":
     device = o3d.core.Device('CUDA:0' if o3d.core.cuda.is_available() else 'CPU:0')
     camera = Camera()
-    depth_folder = "../data/rgbd_dataset_freiburg1_xyz/depth/"
-    file_list = get_file_list(depth_folder)
+    # depth_folder = "../data/rgbd_dataset_freiburg1_xyz/depth/"
+    depth_folder = "../data/rgbd_dataset_freiburg3_cabinet/depth/"
+    file_list, _ = get_file_list(depth_folder)
     vbg = create_vbg(device)
     debug = True
 
     for i in range(len(file_list)):
         print("Updating frame:", i)
 
-        if debug and i == 10:
+        if debug and i == 300:
             break
 
         depth_path = file_list[i]
@@ -71,10 +70,10 @@ if __name__ == "__main__":
 
         # camera.extrinsic needs to be updated per frame, here I'm using
         # the same extrinsic just for illustration of the upate component
-        vbg = update_vbg(vbg, camera, depth)
+        vbg, _ = update_vbg(vbg, camera, depth)
 
-        # vertext and normal maps ray casted from tsdf representation
-        point_cloud = ray_cast_vbg(vbg, camera, depth)
+        # # vertext and normal maps ray casted from tsdf representation
+        # point_cloud = ray_cast_vbg(vbg, camera, depth)
 
     # visualize the point cloud extracted from TSDF
     visualize_vbg_o3d(vbg, 180, 0, 0)

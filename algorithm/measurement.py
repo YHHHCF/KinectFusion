@@ -12,9 +12,6 @@ from camera import *
 import matplotlib.pyplot as plt
 
 # generate vertex map, normal map in o3d's t space
-# TODO: also generate a valid mask and think of filter out invalid points from ICP
-# TODO: remove the filter out invalid depth logic in point_cloud_from_depth() after the above logic is done
-# TODO: if needed, create a o3d point cloud to make sure vertex and normal maps format matches with prediction step for ICP
 def maps_from_depth(depth_numpy, camera, vertex_only=True, debug=False):
     vertex_map_numpy = camera.vertex_map_from_depth(depth_numpy).astype(np.float32)
 

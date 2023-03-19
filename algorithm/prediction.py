@@ -8,24 +8,16 @@ import matplotlib.pyplot as plt
 
 # Inputs: TSDF representation and camera (pose...)
 # Outputs vertex and normal maps
-def ray_cast_vbg(vbg, camera, depth):
-    # TODO: skip frustum_block_coords by passing it in from update step, after the pipeline works
-    extrinsic = o3d.core.Tensor(camera.extrinsic)
-    frustum_block_coords = vbg.compute_unique_block_coordinates(depth, camera.intrinsic,
-                                                                extrinsic, 5000.0, 5.0)
-
-    # TODO: tune weight_threshold, range_map_down_factor
+def ray_cast_vbg(vbg, camera, depth, frustum_block_coords):
     result = vbg.ray_cast(block_coords=frustum_block_coords,
                           intrinsic=camera.intrinsic,
-                          extrinsic=extrinsic,
+                          extrinsic=o3d.core.Tensor(camera.extrinsic),
                           width=camera.width,
                           height=camera.height,
                           render_attributes=['vertex'],
                           depth_scale=5000.0,
-                          depth_min=0.0,
-                          depth_max=5.0,
-                          weight_threshold=1,
-                          range_map_down_factor=8)
+                          depth_min=1e-3,
+                          depth_max=5.0)
     point_cloud_o3d = o3d.geometry.PointCloud()
 
     vertex = result['vertex'].numpy()

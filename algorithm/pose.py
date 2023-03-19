@@ -33,7 +33,6 @@ if __name__ == "__main__":
     print(pc_o3d_2.has_normals())
     print(pc_o3d_2.has_points())
 
-    # TODO: tune the threshold
     threshold = 0.02
 
     reg_p2l = o3d.pipelines.registration.registration_icp(

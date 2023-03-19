@@ -42,7 +42,7 @@ class Camera:
         self.extrinsic = np.eye(4)
 
         # for perf optimization, down sample the vertex and normal map
-        self.down_sample_factor = 4
+        self.down_sample_factor = 10
 
 
     def point_cloud_from_depth(self, Z, filter_invalid=True, debug=False):
