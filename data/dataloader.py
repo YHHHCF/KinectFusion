@@ -71,18 +71,27 @@ def load_depth_as_numpy(depth_path):
 
     return depth
 
+
+def point_cloud_from_depth(depth_numpy, camera):
+    point_cloud = o3d.geometry.PointCloud()
+    point_cloud.points = o3d.utility.Vector3dVector(camera.point_cloud_from_depth(depth_numpy))
+    point_cloud.estimate_normals()
+    point_cloud.normalize_normals()
+    return point_cloud
+
 # return a sorted (by timestamp) list of file paths
 def get_file_list(depth_folder):
     file_list = []
     timestamps = []
 
     for file in os.listdir(depth_folder):
-        # drop the '.png' and convert to float
-        timestamps.append(float(file[:-4]))
+        if file.count('png'):
+            # drop the '.png' and convert to float
+            timestamps.append(float(file[:-4]))
 
-        # append file path
-        depth_path = depth_folder + file
-        file_list.append(depth_path)
+            # append file path
+            depth_path = depth_folder + file
+            file_list.append(depth_path)
 
     timestamps.sort()
     file_list.sort()

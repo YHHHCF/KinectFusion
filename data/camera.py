@@ -45,7 +45,7 @@ class Camera:
         self.down_sample_factor = 4
 
 
-    def point_cloud_from_depth(self, Z, filter_invalid=False, debug=False):
+    def point_cloud_from_depth(self, Z, filter_invalid=True, debug=False):
         h, w = Z.shape
 
         vertex_map_numpy = self.vertex_map_from_depth(Z)
@@ -53,9 +53,12 @@ class Camera:
 
         points_cloud_numpy = vertex_map_numpy.reshape((-1,3)) # (h*w, 3)
 
+        # filter out invalid depths
         if filter_invalid:
-            # filter out invalid depths
-            points_cloud_numpy = points_cloud_numpy[points_cloud_numpy[:, 2] > 0]
+            clamping_distance = 5
+            smallest_distance = 1e-3
+            points_cloud_numpy = points_cloud_numpy[points_cloud_numpy[:,2] >= smallest_distance]
+            points_cloud_numpy = points_cloud_numpy[points_cloud_numpy[:,2] <= clamping_distance]
 
         if debug:
             print("Depth map shape:", Z.shape)

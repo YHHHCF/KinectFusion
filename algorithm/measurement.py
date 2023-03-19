@@ -40,13 +40,6 @@ def maps_from_depth(depth_numpy, camera, vertex_only=True, debug=False):
     else:
         return vertex_map_o3d, normal_map_o3d
 
-def point_cloud_from_depth(depth_numpy, camera):
-    point_cloud = o3d.geometry.PointCloud()
-    point_cloud.points = o3d.utility.Vector3dVector(camera.point_cloud_from_depth(depth_numpy))
-    point_cloud.estimate_normals()
-    point_cloud.normalize_normals()
-    return point_cloud
-
 
 if __name__ == "__main__":
     camera = Camera()

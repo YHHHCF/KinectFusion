@@ -34,7 +34,7 @@ class PerfTimer:
         self.start = 0.0
 
 
-def filter_depths(data_folder="./data/rgbd_dataset_freiburg1_xyz/"):
+def filter_depths(data_folder="./data/rgbd_dataset_freiburg3_cabinet/"):
         depth_folder = data_folder + "depth/"
         depth_name_list = os.listdir(depth_folder)
         depth_name_list.sort()
@@ -61,6 +61,7 @@ def filter_depths(data_folder="./data/rgbd_dataset_freiburg1_xyz/"):
             depth -= 1e-6
             depth *= 5000
 
+            depth[depth < 1e-3] = 65535 # set holes to a large value ~13.1m, not to be used
             depth = depth.astype(np.uint16)
             cv2.imwrite(filtered_depth_folder + depth_name_list[i], depth)
 
@@ -140,7 +141,7 @@ class KinectFusion:
         self.poses[self.frame_id][1:] = matrix_to_trajectory(self.camera.extrinsic)
 
         # TSDF Update
-        depth, depth_numpy = self.get_depth_map()
+        depth, _ = self.get_depth_map()
         self.vbg = update_vbg(self.vbg, self.camera, depth)
 
         # Surface Prediction
@@ -200,12 +201,13 @@ class KinectFusion:
         self.frame_id += 1
 
 if __name__ == "__main__":
-    filtered_depths = False
+    data_folder="./data/rgbd_dataset_freiburg3_cabinet/"
+    filtered_depths = True
 
     if filtered_depths:
-        filter_depths()
+        filter_depths(data_folder=data_folder)
 
-    kf = KinectFusion(depth_filtered=filtered_depths)
+    kf = KinectFusion(data_folder=data_folder, depth_filtered=filtered_depths)
 
     kf.first_frame()
 
@@ -217,8 +219,8 @@ if __name__ == "__main__":
         timer.stopMeasure()
 
         # visualize_point_cloud_o3d(kf.curr_point_cloud, 180, 0, 0)
-        if kf.frame_id == 30:
-            break
+        # if kf.frame_id == 30:
+        #     break
 
     # TODO: visualize pose
     kf.save_results()
