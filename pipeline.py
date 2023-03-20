@@ -92,8 +92,12 @@ class KinectFusion:
         # A point cloud contains vertices and normals
 
         # self.prev_point_cloud always holds point cloud estimated from
-        # ray casting from the previous frame at global position
+        # ray casting from the previous frame at global pose or previous frame's pose
         self.prev_point_cloud = None
+
+        # True: ray casting and ICP from global pose
+        # False: ray casting and ICP from previous frame's pose
+        self.ICP_from_global = False
 
         # self.curr_point_cloud always holds point cloud computed from
         # surface measurement from the current frame at current (local) position
@@ -118,7 +122,7 @@ class KinectFusion:
 
     # Save trajectory (as txt file) and TSDF
     def save_results(self, results_foler='./results/'):
-        trajectory_path = results_foler + 'trajectory_' + self.frame_id + '.txt'
+        trajectory_path = results_foler + 'trajectory_' + str(self.frame_id) + '.txt'
         with open(trajectory_path, 'w') as f:
             f.write('# Output trajectory with each line: timestamp tx ty tz qx qy qz qw\n')
             for i in range(self.poses.shape[0]):
@@ -127,7 +131,7 @@ class KinectFusion:
                 f.write('\n')
         print("Trajectory saved as:", trajectory_path)
 
-        vbg_path = results_foler + 'TSDF_' + self.frame_id + '.npz'
+        vbg_path = results_foler + 'TSDF_' + str(self.frame_id) + '.npz'
         self.vbg.save(vbg_path)
         print("TSDF saved as:", vbg_path)
 
@@ -145,7 +149,7 @@ class KinectFusion:
         self.vbg = update_vbg(self.vbg, self.camera, depth)
 
         # Surface Prediction
-        self.prev_point_cloud = ray_cast_vbg(self.vbg, self.camera, depth)
+        self.prev_point_cloud = ray_cast_vbg(self.vbg, self.camera, depth, from_global_pose=self.ICP_from_global)
 
         self.frame_id += 1
 
@@ -175,13 +179,21 @@ class KinectFusion:
         # TODO: tune the threshold
         threshold = 0.02
 
-        # ICP based on previous frame's pose to estimate current frame's pose
-        reg_p2l = o3d.pipelines.registration.registration_icp(
-                    self.prev_point_cloud, self.curr_point_cloud, threshold, self.camera.extrinsic,
-                    o3d.pipelines.registration.TransformationEstimationPointToPlane(),
-                    o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=100))
-
-        self.camera.extrinsic = reg_p2l.transformation
+        # ICP iterating from previous frame's pose to estimate current frame's pose
+        # self.ICP_from_global indicates whether the result is a delta transition
+        # between global pose or previous frame's pose
+        if self.ICP_from_global:
+            tansition = o3d.pipelines.registration.registration_icp(
+                        self.prev_point_cloud, self.curr_point_cloud, threshold, self.camera.extrinsic,
+                        o3d.pipelines.registration.TransformationEstimationPointToPlane(),
+                        o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=100))
+            self.camera.extrinsic = tansition.transformation
+        else:
+            tansition = o3d.pipelines.registration.registration_icp(
+                        self.prev_point_cloud, self.curr_point_cloud, threshold, np.eye(4),
+                        o3d.pipelines.registration.TransformationEstimationPointToPlane(),
+                        o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=100))
+            self.camera.extrinsic = (tansition.transformation).dot(self.camera.extrinsic)
         timer.stopMeasure()
 
         # Update timestamp and trajectory
@@ -195,7 +207,7 @@ class KinectFusion:
 
         # Surface Prediction
         timer.startMeasure("Surface Prediction")
-        self.prev_point_cloud = ray_cast_vbg(self.vbg, self.camera, depth)
+        self.prev_point_cloud = ray_cast_vbg(self.vbg, self.camera, depth, from_global_pose=self.ICP_from_global)
         timer.stopMeasure()
 
         self.frame_id += 1
@@ -220,7 +232,7 @@ if __name__ == "__main__":
                     "./data/datasets/" + "rgbd_dataset_freiburg3_teddy/", # 15
                     "./data/datasets/" + "rgbd_dataset_freiburg3_walking_static/"] # 16
 
-    data_folder = data_folders[10]
+    data_folder = data_folders[0]
     filtered_depths = True
 
     if filtered_depths:
