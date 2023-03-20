@@ -34,7 +34,7 @@ class PerfTimer:
         self.start = 0.0
 
 
-def filter_depths(data_folder="./data/rgbd_dataset_freiburg3_cabinet/"):
+def filter_depths(data_folder="./data/datasets/rgbd_dataset_freiburg3_cabinet/"):
         depth_folder = data_folder + "depth/"
         depth_name_list = os.listdir(depth_folder)
         depth_name_list.sort()
@@ -118,7 +118,7 @@ class KinectFusion:
 
     # Save trajectory (as txt file) and TSDF
     def save_results(self, results_foler='./results/'):
-        trajectory_path = results_foler + 'trajectory.txt'
+        trajectory_path = results_foler + 'trajectory_' + self.frame_id + '.txt'
         with open(trajectory_path, 'w') as f:
             f.write('# Output trajectory with each line: timestamp tx ty tz qx qy qz qw\n')
             for i in range(self.poses.shape[0]):
@@ -127,7 +127,7 @@ class KinectFusion:
                 f.write('\n')
         print("Trajectory saved as:", trajectory_path)
 
-        vbg_path = results_foler + 'TSDF.npz'
+        vbg_path = results_foler + 'TSDF_' + self.frame_id + '.npz'
         self.vbg.save(vbg_path)
         print("TSDF saved as:", vbg_path)
 
@@ -201,20 +201,35 @@ class KinectFusion:
         self.frame_id += 1
 
 if __name__ == "__main__":
-    data_folder="./data/rgbd_dataset_freiburg1_xyz/"
-    # data_folder="./data/rgbd_dataset_freiburg1_360/"
-    # data_folder="./data/rgbd_dataset_freiburg3_cabinet/"
+
+    data_folders = ["./data/datasets/" + "rgbd_dataset_freiburg1_360/", # 0
+                    "./data/datasets/" + "rgbd_dataset_freiburg1_plant/", # 1
+                    "./data/datasets/" + "rgbd_dataset_freiburg1_xyz/", # 2
+                    "./data/datasets/" + "rgbd_dataset_freiburg2_coke/", # 3
+                    "./data/datasets/" + "rgbd_dataset_freiburg2_dishes/", # 4
+                    "./data/datasets/" + "rgbd_dataset_freiburg2_flowerbouquet/", # 5
+                    "./data/datasets/" + "rgbd_dataset_freiburg2_flowerbouquet_brownbackground/", # 6
+                    "./data/datasets/" + "rgbd_dataset_freiburg2_metallic_sphere/", # 7
+                    "./data/datasets/" + "rgbd_dataset_freiburg2_metallic_sphere2/", # 8
+                    "./data/datasets/" + "rgbd_dataset_freiburg2_xyz/", # 9
+                    "./data/datasets/" + "rgbd_dataset_freiburg3_cabinet/", # 10
+                    "./data/datasets/" + "rgbd_dataset_freiburg3_nostructure_notexture_far/", # 11
+                    "./data/datasets/" + "rgbd_dataset_freiburg3_sitting_static/", # 12
+                    "./data/datasets/" + "rgbd_dataset_freiburg3_sitting_xyz/", # 13
+                    "./data/datasets/" + "rgbd_dataset_freiburg3_structure_notexture_far/", # 14
+                    "./data/datasets/" + "rgbd_dataset_freiburg3_teddy/", # 15
+                    "./data/datasets/" + "rgbd_dataset_freiburg3_walking_static/"] # 16
+
+    data_folder = data_folders[10]
     filtered_depths = True
 
     if filtered_depths:
         filter_depths(data_folder=data_folder)
 
     kf = KinectFusion(data_folder=data_folder, depth_filtered=filtered_depths)
-
     kf.first_frame()
 
     timer = PerfTimer()
-
     while kf.has_next_frame():
         timer.startMeasure("Overall frame")
         kf.next_frame()
