@@ -122,6 +122,10 @@ class KinectFusion:
 
     # Save trajectory (as txt file) and TSDF
     def save_results(self, results_foler='./results/'):
+        results_foler = results_foler + self.data_folder[16:]
+        if not os.path.isdir(results_foler):
+            os.mkdir(results_foler)
+
         trajectory_path = results_foler + 'trajectory_' + str(self.frame_id) + '.txt'
         with open(trajectory_path, 'w') as f:
             f.write('# Output trajectory with each line: timestamp tx ty tz qx qy qz qw\n')
@@ -231,28 +235,30 @@ if __name__ == "__main__":
                     "./data/datasets/" + "rgbd_dataset_freiburg3_structure_notexture_far/", # 14
                     "./data/datasets/" + "rgbd_dataset_freiburg3_teddy/", # 15
                     "./data/datasets/" + "rgbd_dataset_freiburg3_walking_static/"] # 16
+    idxs = [2,9,10]
 
-    data_folder = data_folders[0]
-    filtered_depths = True
+    for idx in idxs:
+        data_folder = data_folders[idx]
+        filtered_depths = True
 
-    if filtered_depths:
-        filter_depths(data_folder=data_folder)
+        if filtered_depths:
+            filter_depths(data_folder=data_folder)
 
-    kf = KinectFusion(data_folder=data_folder, depth_filtered=filtered_depths)
-    kf.first_frame()
+        kf = KinectFusion(data_folder=data_folder, depth_filtered=filtered_depths)
+        kf.first_frame()
 
-    timer = PerfTimer()
-    while kf.has_next_frame():
-        timer.startMeasure("Overall frame")
-        kf.next_frame()
-        timer.stopMeasure()
+        timer = PerfTimer()
+        while kf.has_next_frame():
+            timer.startMeasure("Overall frame")
+            kf.next_frame()
+            timer.stopMeasure()
 
-        if kf.frame_id % 50 == 0:
-            kf.save_results()
+            if kf.frame_id % 50 == 0:
+                kf.save_results()
 
-        # visualize_point_cloud_o3d(kf.curr_point_cloud, 180, 0, 0)
-        # if kf.frame_id == 300:
-        #     break
+            # visualize_point_cloud_o3d(kf.curr_point_cloud, 180, 0, 0)
+            # if kf.frame_id == 300:
+            #     break
 
-    kf.save_results()
-    visualize_vbg_o3d(kf.vbg, 180, 0, 0)
+        kf.save_results()
+        # visualize_vbg_o3d(kf.vbg, 180, 0, 0)
