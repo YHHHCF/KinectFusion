@@ -5,12 +5,16 @@ import sys
 sys.path.append('./data/')
 from camera import *
 from dataloader import *
+from trajprocessor import *
 
 sys.path.append('./algorithm/')
 from measurement import *
 from pose import *
 from update import *
 from prediction import *
+
+sys.path.append('./eval')
+import associate
 
 import matplotlib.pyplot as plt
 import time
@@ -110,6 +114,25 @@ class KinectFusion:
         # timestamp tx ty tz qx qy qz qw
         self.poses = np.zeros((self.num_frames, 8))
 
+        # prepare ground truth pose
+        gt_traj_path = self.data_folder + 'groundtruth.txt'
+        gt_traj_list = associate.read_file_list(gt_traj_path)
+        gt_timestamps = list(gt_traj_list.keys())
+        gt_timestamps.sort()
+        for timestamp in gt_timestamps:
+            gt_traj_list[timestamp] = convert_line_to_floats(gt_traj_list[timestamp])
+        delta = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]) - gt_traj_list[gt_timestamps[0]]
+        for timestamp in gt_timestamps:
+            gt_traj_list[timestamp] = gt_traj_list[timestamp] + delta
+
+        self.gt_timestamps = gt_timestamps
+        self.gt_traj = gt_traj_list
+
+        # 0.0 means never use gt traj, 1.0 means always use gt traj, 0.1 means use gt traj 1 out of 10 frames
+        self.gt_traj_ratio = 0.0
+        if self.gt_traj_ratio > 0:
+            self.gt_traj_interval = int(1.0 / self.gt_traj_ratio)
+
     # Get the current frame's depth map
     def get_depth_map(self):
         depth_path = self.depth_file_list[self.frame_id]
@@ -180,24 +203,29 @@ class KinectFusion:
 
         # Pose Estimation
         timer.startMeasure("Pose Estimation")
-        # TODO: tune the threshold
         threshold = 0.02
 
         # ICP iterating from previous frame's pose to estimate current frame's pose
-        # self.ICP_from_global indicates whether the result is a delta transition
-        # between global pose or previous frame's pose
-        if self.ICP_from_global:
-            tansition = o3d.pipelines.registration.registration_icp(
-                        self.prev_point_cloud, self.curr_point_cloud, threshold, self.camera.extrinsic,
-                        o3d.pipelines.registration.TransformationEstimationPointToPlane(),
-                        o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=100))
-            self.camera.extrinsic = tansition.transformation
+        timestamp = self.timestamps[self.frame_id]
+        success, gt_pose = interpolate_pose(self.gt_traj, self.gt_timestamps, timestamp)
+
+        if self.gt_traj_ratio > 0 and (self.frame_id % self.gt_traj_interval) == 0 and success:
+            self.camera.extrinsic = trajectory_to_matrix(gt_pose)
         else:
-            tansition = o3d.pipelines.registration.registration_icp(
-                        self.prev_point_cloud, self.curr_point_cloud, threshold, np.eye(4),
-                        o3d.pipelines.registration.TransformationEstimationPointToPlane(),
-                        o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=100))
-            self.camera.extrinsic = (tansition.transformation).dot(self.camera.extrinsic)
+            # self.ICP_from_global indicates whether the result is a delta transition
+            # between global pose or previous frame's pose
+            if self.ICP_from_global:
+                tansition = o3d.pipelines.registration.registration_icp(
+                            self.prev_point_cloud, self.curr_point_cloud, threshold, self.camera.extrinsic,
+                            o3d.pipelines.registration.TransformationEstimationPointToPlane(),
+                            o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=100))
+                self.camera.extrinsic = tansition.transformation
+            else:
+                tansition = o3d.pipelines.registration.registration_icp(
+                            self.prev_point_cloud, self.curr_point_cloud, threshold, np.eye(4),
+                            o3d.pipelines.registration.TransformationEstimationPointToPlane(),
+                            o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=100))
+                self.camera.extrinsic = (tansition.transformation).dot(self.camera.extrinsic)
         timer.stopMeasure()
 
         # Update timestamp and trajectory
@@ -235,7 +263,7 @@ if __name__ == "__main__":
                     "./data/datasets/" + "rgbd_dataset_freiburg3_structure_notexture_far/", # 14
                     "./data/datasets/" + "rgbd_dataset_freiburg3_teddy/", # 15
                     "./data/datasets/" + "rgbd_dataset_freiburg3_walking_static/"] # 16
-    idxs = [2,9,10]
+    idxs = [2]
 
     for idx in idxs:
         data_folder = data_folders[idx]
